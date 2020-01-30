@@ -34,6 +34,7 @@ switch ($callback->command) {
 	# Пользователь впервые в боте
 	case "start";
 	    $name = $vk->getUserFirstName($callback->peer_id);
+	    // $users->registration($vk->getUser($callback->peer_id,"sex,city,bdate,photo_max_orig,about,"nom"));
 		$message = $bot_message->getFormatMessage("start",["NAME_USER","NAME_BOT"],[$name,$_ENV["NAME_BOT"]]);
 		$button1 = ["reg_user_profile_view","\xe2\x9c\x94 Продолжить","positive","text"];
 		$button = [[$button1]];

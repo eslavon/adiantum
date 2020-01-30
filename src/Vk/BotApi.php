@@ -7,22 +7,20 @@ class BotApi extends VkRequest
 {
    /**
      * Ключ доступа сообщества
-     *
      * @var string
      */	
     private $token;
 
    /**
      * Версия VK API
-     *
      * @var string
      */	
-    private $version;
+    private $version = "5.103";
 
    /**
      * Вложения для отправки сообщения
      *
-     * @var string
+     * @var string|null
      */ 
     private $attachment = null;
 
@@ -271,7 +269,6 @@ class BotApi extends VkRequest
      *
      * @param int $peer_id - ID назначения
      * @param string $message - Текст сообщения
-     * @param array $setting - Параметры (Сниппет ссылки,Уведомление,Интент)
      *
      * @return array
      * @throws VkException
