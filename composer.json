@@ -1,0 +1,19 @@
+{
+  "name": "eslavon/adiantum",
+  "minimum-stability": "stable",
+  "authors": [
+    {
+      "name": "Victor Vinogradov",
+      "email": "victor@eslavon.ru"
+    }
+  ],
+  "autoload": {
+    "psr-4": {"Eslavon\\Adiantum\\": "src/"}
+  },
+  "require": {
+    "vlucas/phpdotenv": "^4.1",
+    "php": ">=7.3",
+    "ext-json": "*",
+    "ext-curl": "*"
+  }
+}
