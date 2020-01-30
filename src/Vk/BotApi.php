@@ -278,8 +278,7 @@ class BotApi extends VkRequest
             "peer_id" => $peer_id,
             "message" => $message
         );
-        $result = $this->messagesSend($params);
-        return $result;
+        return $this->messagesSend($params);
     }
 
     /**
@@ -427,8 +426,18 @@ class BotApi extends VkRequest
             "v" => $this->version
         );
         $method = "users.get";
-        $result = $this->request($method,$params);
+        $result = $this->sendRequest($method,$params);
         return $result["response"];
+    }
+
+    private function sendRequest($method,$params)
+    {
+        $params["access_token"] = $this->token;
+        $params["v"] = $this->version;
+        try {
+            return $this->request($method, $params);
+        } catch (VkException $e) {
+        }
     }
 }
 
