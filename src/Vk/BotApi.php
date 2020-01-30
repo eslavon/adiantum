@@ -92,10 +92,10 @@ class BotApi extends VkRequest
     }
 
     /**
-    * Получить георкодинаты
-    *
-    * @return $array
-    */
+     * Получить георкодинаты
+     *
+     * @return array $array
+     */
     public function getLocation()
     {
         return $this->location;
@@ -127,10 +127,10 @@ class BotApi extends VkRequest
     }
 
     /**
-    * Получить настройки
-    *
-    * @return $array
-    */
+     * Получить настройки
+     *
+     * @return array $array
+     */
     public function getSetting()
     {
         return $this->setting;
@@ -146,6 +146,8 @@ class BotApi extends VkRequest
      */
     private function formationKeyboard($array,$setting = null)
     {
+        $one_time = false;
+        $inline = false;
         if ($setting == null) {
             $one_time = false;
             $inline = false;
@@ -180,8 +182,7 @@ class BotApi extends VkRequest
             $x++;
         }
             $array_keyboard = ["one_time" => $one_time,"buttons" => $keyboard,"inline"=> $inline];
-            $json_keyboard = json_encode($array_keyboard, JSON_UNESCAPED_UNICODE);
-            return $json_keyboard;
+        return json_encode($array_keyboard, JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -190,7 +191,6 @@ class BotApi extends VkRequest
     * @param array $array - массив клавиатуры
     * @param mixed $setting - Скрывать ли клавиатуру после нажатия, включить ли режим inline
     *
-    * @return string
     */
     public function setKeyboard($array,$setting = null)
     {
@@ -220,6 +220,7 @@ class BotApi extends VkRequest
      * @param array $array_params - массив параметров
      *
      * @return array
+     * @throws VkException
      */
     public function messagesSend($array_params)
     {
@@ -269,6 +270,7 @@ class BotApi extends VkRequest
      * @param array $setting - Параметры (Сниппет ссылки,Уведомление,Интент)
      *
      * @return array
+     * @throws VkException
      */
     public function sendMessage($peer_id,$message)
     {
@@ -286,6 +288,7 @@ class BotApi extends VkRequest
      * @param int $peer_id - ID назначения
      *
      * @return string
+     * @throws VkException
      */
     public function imageUploadServer($peer_id)
     {
@@ -306,6 +309,7 @@ class BotApi extends VkRequest
      * @param string $type - тип документа. Возможные значения:doc — обычный документ; audio_message — голосовое сообщение.
      *
      * @return string
+     * @throws VkException
      */
     public function docUploadServer($peer_id,$type = "doc")
     {
@@ -326,6 +330,7 @@ class BotApi extends VkRequest
      * @param int $peer_id - ID назначения
      *
      * @return string
+     * @throws VkException
      */
     public function savePhotoServer($photo,$server,$hash)
     {
@@ -352,6 +357,7 @@ class BotApi extends VkRequest
      * @param string $file - ID документа
      *
      * @return string
+     * @throws VkException
      */
     public function saveDocServer($file,$type = "doc")
     {
@@ -376,6 +382,7 @@ class BotApi extends VkRequest
      * @param string $file - Локальный путь до файла
      *
      * @return string
+     * @throws VkException
      */
     public function uploadImage($peer_id,$file)
     {
@@ -394,6 +401,7 @@ class BotApi extends VkRequest
      * @param string $file - Локальный путь до файла
      *
      * @return string
+     * @throws VkException
      */
     public function uploadDoc($peer_id,$file,$type = "doc")
     {
