@@ -1,6 +1,6 @@
 {
   "name": "eslavon/adiantum",
-  "minimum-stability": "stable",
+  "minimum-stability": "dev",
   "authors": [
     {
       "name": "Victor Vinogradov",
@@ -12,8 +12,10 @@
   },
   "require": {
     "vlucas/phpdotenv": "^4.1",
+    "eslavon/geocoder": "*",
     "php": ">=7.3",
     "ext-json": "*",
-    "ext-curl": "*"
+    "ext-curl": "*",
+    "ext-mbstring": "*"
   }
 }
