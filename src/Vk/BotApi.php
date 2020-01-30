@@ -60,6 +60,16 @@ class BotApi extends VkRequest
         $this->version = $version;
     }
 
+    private function sendRequest($method,$params)
+    {
+        $params["access_token"] = $this->token;
+        $params["v"] = $this->version;
+        try {
+            return $this->request($method, $params);
+        } catch (VkException $e) {
+        }
+    }
+
     /** 
     * Добавить вложение 
     *
@@ -74,7 +84,7 @@ class BotApi extends VkRequest
     /**
     * Получить строку вложений
     *
-    * @return $string
+    * @return string
     */
     public function getAttachment()
     {
@@ -210,8 +220,7 @@ class BotApi extends VkRequest
      */
     private function random()
     {
-        $random = mt_rand(-99999999,99999999);
-        return $random;
+        return mt_rand(-99999999,99999999);
     }
 
     /**
@@ -224,10 +233,6 @@ class BotApi extends VkRequest
      */
     public function messagesSend($array_params)
     {
-        $params = array(
-            "access_token" => $this->token,
-            "v" => $this->version            
-        );
         foreach ($array_params as $key => $value) {
             $params[$key] = $value;
         }
@@ -258,8 +263,7 @@ class BotApi extends VkRequest
         }
 
         $method = "messages.send";
-        $result = $this->request($method,$params);
-        return $result;
+        return $this->sendRequest($method,$params);
     }
 
     /**
@@ -430,14 +434,6 @@ class BotApi extends VkRequest
         return $result["response"];
     }
 
-    private function sendRequest($method,$params)
-    {
-        $params["access_token"] = $this->token;
-        $params["v"] = $this->version;
-        try {
-            return $this->request($method, $params);
-        } catch (VkException $e) {
-        }
-    }
+
 }
 
