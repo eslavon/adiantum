@@ -152,9 +152,6 @@ class BotApi extends VkRequest
         } elseif ($setting == "inline") {
             $one_time = false;
             $inline = true;
-        } elseif ($one_time == true) {
-            $one_time = true;
-            $inline = false;
         }
 
         $keyboard = [];
@@ -200,11 +197,7 @@ class BotApi extends VkRequest
         $this->keyboard = $this->formationKeyboard($array,$setting);
     }
 
-    /**
-    * Получить клавиатуру
-    *
-    * @return $array
-    */
+
     public function getKeyboard()
     {
         return $this->keyboard;
@@ -412,14 +405,22 @@ class BotApi extends VkRequest
     
     public function getUserFirstName($peer_id)
     {
+        $result = $this->getUser($peer_id);
+        return $result[0]["first_name"];
+    }
+
+    public function getUser($peer_id,$fields = "sex",$name_case = "nom")
+    {
         $params = array(
             "user_ids" => $peer_id,
+            "fields" => $fields,
+            "name_case" => $name_case,
             "access_token" => $this->token,
-            "v" => $this->version             
+            "v" => $this->version
         );
         $method = "users.get";
         $result = $this->request($method,$params);
-        return $result["response"][0]["first_name"];        
+        return $result["response"];
     }
 }
 
