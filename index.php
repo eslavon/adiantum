@@ -5,17 +5,34 @@ use Dotenv\Dotenv;
 use Eslavon\Adiantum\Control\BotMessage;
 use Eslavon\Adiantum\Vk\BotApi;
 use Eslavon\Adiantum\Vk\Callback;
+use Eslavon\Adiantum\Users\Registration;
+use Eslavon\Adiantum\Users\Users;
+use Eslavon\Geocoder\Geocoder;
 
-$dotenv = Dotenv::createImmutable (__DIR__,"config.env")->load();
+Dotenv::createImmutable (__DIR__,"config.env")->load();
 $callback = new Callback(file_get_contents("php://input"));
 $bot_message = new BotMessage();
 $vk = new BotApi($_ENV["ACCESS_TOKEN"],$_ENV["VERSION"]);
+$registration = new Registration();
 
-$log = "command: ".$callback->command."\n group_id: ".$callback->group_id."\n user_id: ".$callback->user_id."\n inline: ".$callback->inline."\n keyboard: ".$callback->keyboard;
+$users = new Users();
+if ($users->isset($callback->peer_id) == false) {
+    $user_data_array = $registration->registration($vk->getUser($callback->peer_id,"sex,country,city,bdate,photo_id,photo_max_orig,about","nom"));
+    $users->add($user_data_array);
+    if ($callback->command !== "error_keyboard") {
+        $callback->command = "start";
+    }
+}
+$callback->command = $users->getCommand($callback->peer_id,$callback->command,$callback->load);
+
+
+
+$log = $callback->json;//"command: ".$callback->command."\n group_id: ".$callback->group_id."\n user_id: ".$callback->user_id."\n inline: ".$callback->inline."\n keyboard: ".$callback->keyboard."\n Load ".$callback->load;
 $button1 = [$callback->command,"Повторить","secondary","text"];
 $button = [[$button1]];
 $vk->setKeyboard($button,"inline");
 $vk->sendMessage(251510315,$log);
+$button = null;
 
 echo "ok";
 
@@ -50,6 +67,16 @@ switch ($callback->command) {
 		$button = [[$button1],[$button2]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
+		$profile = $users->getMeProfile($callback->peer_id);
+        $vk->addAttachment($profile["photo"]);
+        if ($profile["voice"] !== false) {
+            $doc = $vk->uploadDoc($callback->peer_id,$profile["voice"],"audio_message"); // Загружаем аудиосообщение на сервер Вконатке
+            $vk->addAttachment($doc);
+        }
+        $vk->sendMessage($callback->peer_id,$profile["text"]);
+        $vk->setAttachment();
+        $message = $bot_message->getMessage("reg_user_profile_view_2");
+        $vk->sendMessage($callback->peer_id,$message);
 		break;
 		
 	# Изменить основные параметры анкеты	
@@ -60,8 +87,9 @@ switch ($callback->command) {
 		$button3 = ["reg_user_set_photo","\xf0\x9f\x93\xb8 Изменить фото","primary","text"];
 		$button4 = ["reg_user_set_search","\xf0\x9f\x94\x8e Изменить предпочтения","primary","text"];
 		$button5 = ["reg_user_set_location","\xf0\x9f\x8f\x99 Изменить город","primary","text"];
-		$button6 = ["reg_user_option_menu","\xe2\x9e\xa1 Продолжить","secondary","text"];
-		$button = [[$button1,$button2],[$button3],[$button4],[$button5],[$button6]];
+		$button6 = ["reg_user_profile_view","\xf0\x9f\x91\x81 Посмотреть профиль","positive","text"];
+		$button7 = ["reg_user_option_menu","\xe2\x9e\xa1 Продолжить","secondary","text"];
+		$button = [[$button1,$button2],[$button3,$button5],[$button4],[$button6],[$button7]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
 		break;
@@ -78,6 +106,7 @@ switch ($callback->command) {
 	
 	# Сохранить пол пользователя
 	case "reg_user_save_sex";
+	    $users->setSex($callback->peer_id,$callback->load);
 		$message = $bot_message->getMessage("reg_user_save_sex");
 		$button1 = ["reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
@@ -87,8 +116,9 @@ switch ($callback->command) {
 			
 	# Ввод возраста пользователя
 	case "reg_user_set_age";
+	    $users->setStatus($callback->peer_id,1);
 		$message = $bot_message->getMessage("reg_user_set_age");
-		$button1 = ["reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+		$button1 = ["back reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
@@ -96,8 +126,17 @@ switch ($callback->command) {
 	
 	# Сохранить возраст пользователя
 	case "reg_user_save_age";
-		$message = $bot_message->getMessage("reg_user_save_age");
-		$button1 = ["reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+	    if (!is_numeric($callback->message)) {
+            $message = $bot_message->getMessage("reg_user_error_age_1");
+        } elseif ($callback->message<18) {
+            $message = $bot_message->getMessage("reg_user_error_age_2");
+        } elseif ($callback->message>100) {
+            $message = $bot_message->getMessage("reg_user_error_age_3");
+        } else {
+            $message = $bot_message->getMessage("reg_user_save_age");
+            $users->setAge($callback->peer_id,$callback->message);
+        }
+		$button1 = ["back reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);		
@@ -105,8 +144,9 @@ switch ($callback->command) {
 	
 	# Отправка фотографии профиля
 	case "reg_user_set_photo";
+        $users->setStatus($callback->peer_id,2);
 		$message = $bot_message->getMessage("reg_user_set_photo");
-		$button1 = ["reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+		$button1 = ["back reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
@@ -114,8 +154,15 @@ switch ($callback->command) {
 	
 	# Сохранить фото профиля.
 	case "reg_user_save_photo";
-		$message = $bot_message->getMessage("reg_user_save_photo");
-		$button1 = ["reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+	    if ($callback->photo_url == false) {
+            $message = $bot_message->getMessage("reg_user_error_photo");
+        } else {
+            $message = $bot_message->getMessage("reg_user_save_photo");
+            $image = $users->savePhoto($callback->peer_id,$callback->photo_url);
+            $photo_id = $vk->uploadImage($callback->peer_id,$image);
+            $users->setPhotoId($callback->peer_id,$photo_id);
+        }
+		$button1 = ["back reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
@@ -125,7 +172,7 @@ switch ($callback->command) {
 	case "reg_user_set_search";
 		$message = $bot_message->getMessage("reg_user_set_search");
 		$button1 = ["reg_user_save_search 1","\xf0\x9f\x92\x83 Девушек","positive","text"];
-		$button2 = ["reg_user_save search 2","\xf0\x9f\x95\xba Парней","positive","text"];
+		$button2 = ["reg_user_save_search 2","\xf0\x9f\x95\xba Парней","positive","text"];
 		$button = [[$button1,$button2]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
@@ -133,6 +180,7 @@ switch ($callback->command) {
 	
 	# Сохранить предпочтения пользователя
 	case "reg_user_save_search";
+        $users->setSearch($callback->peer_id,$callback->load);
 		$message = $bot_message->getMessage("reg_user_save_search");
 		$button1 = ["reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
@@ -142,6 +190,7 @@ switch ($callback->command) {
 				
 	# Отправка местоположения
 	case "reg_user_set_location";
+	    $users->setStatus($callback->peer_id,3);
 		$message = $bot_message->getMessage("reg_user_set_location");
 		$button1 = ["reg_user_save_location","Местоположение","default","location"];
 		$button2 = ["reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
@@ -152,12 +201,72 @@ switch ($callback->command) {
 	
 	# Сохранить местоположение
 	case "reg_user_save_location";
-		$message = $bot_message->getMessage("reg_user_save_location");
-		$button1 = ["reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
-		$button = [[$button1]];
+	    if ($callback->geo_lat !== false) {
+	        $message = $bot_message->getMessage("reg_user_save_location");
+	        $button1 = ["back reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+		    $button = [[$button1]];
+	        $users->setLatitude($callback->peer_id,$callback->geo_lat);
+	        $users->setLongitude($callback->peer_id,$callback->geo_long);
+	        if ($callback->geo_city !== false) {
+	            $users->setCity($callback->peer_id,$callback->geo_city);
+	        }
+	        if ($callback->geo_country !== false) {
+	            $users->setCountry($callback->peer_id,$callback->geo_country);
+	        }
+	 
+	    }
+	    if (is_string($callback->message)) {
+	        $geocoder = new Geocoder($callback->message);
+            $response = $geocoder->getResponse();
+            if ($response == false) {
+                $message = $bot_message->getMessage("reg_user_save_location");
+                $users->setCity($callback->peer_id,$callback->message);
+                $button1 = ["back reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+		        $button = [[$button1]];
+            }
+            if (is_array($response) ) {
+                if (count($response) == 1) {
+                    $users->setLatitude($callback->peer_id,$response[0]["latitude"]);
+	                $users->setLongitude($callback->peer_id,$response[0]["longitude"]);
+	                $users->setCity($callback->peer_id,$callback->message);
+	                $message = $bot_message->getMessage("reg_user_save_location");
+	                $button1 = ["back reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+		            $button = [[$button1]];
+                } elseif (count($response) >1) {
+                    $users->setStatus($callback->peer_id,0);
+                    $message = $bot_message->getMessage("reg_user_input_location");
+                    $num = 1;
+                    foreach ($response as $key => $value) {
+                        $resulting_line[] = ["reg_user_save_location_max ".$value["country"].":".$callback->message.":".$value["longitude"].":".$value["latitude"],"".$num."","positive","text"];
+                        $message.="\n".$num." - ".$value["country"].", ".$value["address"];
+                        $num++;
+                    }
+                    $key = 0;
+                    $offset = 0;
+                    $count = count($resulting_line);
+                    while ($offset<$count) {
+                        $button[] = array_slice($resulting_line,$offset,4);
+                        $offset = $offset+4;
+                    }
+                     $button[] = [["back reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"]];
+                }
+            } 
+	    }
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
-		break;	
+		break;
+	
+	case "reg_user_save_location_max";
+	    $geo = explode(":",$callback->load);
+	    $users->setCountry($callback->peer_id,$geo[0]);
+	    $users->setCity($callback->peer_id,$geo[1]);
+	    $users->setLongitude($callback->peer_id,$geo[2]);
+	    $users->setLatitude($callback->peer_id,$geo[3]);
+        $message = $bot_message->getMessage("reg_user_save_location");
+        $button1 = ["back reg_user_edit_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+		$button = [[$button1]];
+	    $vk->sendMessage($callback->peer_id,$message);
+	    break;
 	
 	# Дополнительные пункты
 	case "reg_user_option_menu";
@@ -173,8 +282,9 @@ switch ($callback->command) {
 	
 	# Ввод информации о себе
 	case "reg_user_set_info";
+	    $users->setStatus($callback->peer_id,4);
 		$message = $bot_message->getMessage("reg_user_set_info");
-		$button1 = ["reg_user_option_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+		$button1 = ["back reg_user_option_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
@@ -182,8 +292,9 @@ switch ($callback->command) {
 	
 	# Сохранить информацию о себе
 	case "reg_user_save_info";
+	    $users->setAbout($callback->peer_id,$callback->message);
 		$message = $bot_message->getMessage("reg_user_save_info");
-		$button1 = ["reg_user_option_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+		$button1 = ["back reg_user_option_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
@@ -191,6 +302,7 @@ switch ($callback->command) {
 	
 	# Добавить голосовое сообщение к профилю
 	case "reg_user_set_voice";
+	    $users->setStatus($callback->peer_id,5);
 		$message = $bot_message->getMessage("reg_user_set_voice");
 		$button1 = ["reg_user_option_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
@@ -200,8 +312,14 @@ switch ($callback->command) {
 	
 	# Сохранить голосовое сообщение
 	case "reg_user_save_voice";
-		$message = $bot_message->getMessage("reg_user_save_voice");
-		$button1 = ["reg_user_option_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+		if ($callback->voice_url == false) {
+            $message = $bot_message->getMessage("reg_user_error_voice");
+        } else {
+            $voice_file = $users->saveVoice($callback->peer_id, $callback->voice_url);
+            $users->setVoice($callback->peer_id,$voice_file);
+		    $message = $bot_message->getMessage("reg_user_save_voice");
+        }
+		$button1 = ["back reg_user_option_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
@@ -209,6 +327,7 @@ switch ($callback->command) {
 
 	# Добавить ссылку на профиль Instagram
 	case "reg_user_set_instagram";
+	    $users->setStatus($callback->peer_id,6);
 		$message = $bot_message->getMessage("reg_user_set_instagram");
 		$button1 = ["reg_user_option_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
@@ -218,8 +337,9 @@ switch ($callback->command) {
 	
 	# Сохранить ссылку на профиль Instagram
 	case "reg_user_save_instagram";
+	    $users->setInstagram($callback->peer_id,$callback->message);
 		$message = $bot_message->getMessage("reg_user_save_instagram");
-		$button1 = ["reg_user_option_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
+		$button1 = ["back reg_user_option_menu","\xe2\x86\xa9 Вернуться назад","secondary","text"];
 		$button = [[$button1]];
 		$vk->setKeyboard($button);
 		$vk->sendMessage($callback->peer_id,$message);
@@ -239,6 +359,11 @@ switch ($callback->command) {
 		$message = $bot_message->getMessage("main_menu");
 		$vk->sendMessage($callback->peer_id,$message);
 		break;
+	
+	default;
+	    $message = $bot_message->getMessage("error_no_command");
+	    $vk->sendMessage($callback->peer_id,$message);
+	    break;
 	
 }
 	

@@ -21,9 +21,10 @@ class VkRequest extends VkException
  		if ($json === false) {
 			$e = curl_error($ch);
         	throw new VkException($e);
-        }       
+        }
         curl_close($ch);
-		return $this->jsonValidate($json);
+ 		return $this->jsonValidate($json);
+
 	}
 	
 	private function jsonValidate($json)
@@ -43,7 +44,7 @@ class VkRequest extends VkException
 
     public function upload($peer_id,$file,$upload_url)
     {
-        $post = [ "file" => new CURLFile(realpath($file)) ];
+        $post = [ "file" => new CURLFile($file) ];
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $upload_url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type:multipart/form-data"]);        

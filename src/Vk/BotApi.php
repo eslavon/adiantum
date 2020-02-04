@@ -226,7 +226,7 @@ class BotApi extends VkRequest
      *
      * @param array $array_params - массив параметров
      *
-     * @return array
+     * @return void
      * @throws VkException
      */
     public function messagesSend($array_params)

@@ -23,6 +23,12 @@ class Callback
     public $inline;
     
     public $keyboard = false;
+    public $photo_url = false;
+    public $voice_url = false;
+    public $geo_lat = false;
+    public $geo_long = false;
+    public $geo_city = false;
+    public $geo_country = false; 
 
 
     public function __construct($json = false)
@@ -58,6 +64,12 @@ class Callback
                 } else {
                     $this->command = "error_keyboard";
                 }
+                if (isset($data->object->message->attachments)) {
+                    $this->getAttachments($data->object->message->attachments);
+                }
+                if (isset($data->object->message->geo)) {
+                    $this->getGeo($data->object->message->geo);
+                }                
                 break;
         }
     }
@@ -78,11 +90,46 @@ class Callback
         $command = preg_replace('/[^\p{L}0-9 \!]/iu', "", $command);
         */
         $command = trim($command);
-        $command = mb_strtolower($command);
+        //$command = mb_strtolower($command);
         $array_command = explode(" ", $command);
         $cmd = array_shift($array_command);
         $this->load = implode(" ", $array_command);
-        return $cmd;
+        return mb_strtolower($cmd);
+    }
+
+    private function getAttachments($data)
+    {
+        foreach ($data as $value) {
+            switch ($value->type) {
+                case "photo";
+                    foreach ($value->photo->sizes as $values) {
+                        if ($values->type == "x") {
+                            $this->photo_url = $values->url;
+                        } elseif ($values->type == "y") {
+                            $this->photo_url = $values->url;
+                        } elseif ($values->type == "z") {
+                            $this->photo_url= $values->url;
+                        }
+                    }
+                    break;
+                case "audio_message";
+                    $this->voice_url = $value->audio_message->link_ogg;
+                    break;
+            }
+        }
+    }
+    private function getGeo($data)
+    {
+        $this->geo_lat = $data->coordinates->latitude;
+        $this->geo_long = $data->coordinates->longitude;
+        if (isset($data->place->city)) {
+            $this->geo_city = $data->place->city;
+        }
+        if (isset($data->place->country))
+        {
+            $this->geo_country = $data->place->country;
+        }
+        
     }
 }
 	

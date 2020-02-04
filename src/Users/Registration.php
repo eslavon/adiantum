@@ -19,7 +19,7 @@ class Registration
             "user_id" => $data[0]["id"], //int default
             "first_name" => $data[0]["first_name"], //string default
             "last_name" => $data[0]["last_name"], // string default;
-            "photo_id" => $data[0]["photo_id"],// string default;
+            "photo_id" => "photo".$data[0]["photo_id"],// string default;
             "sex" => $data[0]["sex"], // int default;
             "search" => $this->getSearch($data), // int option
             "bdate" => $this->getBirthDate($data),//string option
@@ -119,7 +119,7 @@ class Registration
     private function getLongitude($data)
     {
         if ($this->getGeo($data) == false) {
-            return "false";
+            return 37.61766;
         } else {
             $array = $this->getGeo($data);
             return $array["longitude"];
@@ -128,7 +128,7 @@ class Registration
     private function getLatitude($data)
     {
         if ($this->getGeo($data) == false) {
-            return "false";
+            return 55.750717;
         } else {
             $array = $this->getGeo($data);
             return $array["latitude"];
